@@ -1,0 +1,17 @@
+[package]
+name = "prometheus_podman_exporter_rs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+podman-api = "0.3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"], default-features = false }
+chrono = { version = "0" }
+prometheus = "0.13.1"
+lazy_static = "1"
+serde_json = "1"
+hyper = { version = "0.14", features = ["server", "http1", "tcp"] }
+clap = { version="3", features=["derive"] }
