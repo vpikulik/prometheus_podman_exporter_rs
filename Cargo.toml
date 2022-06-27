@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1"
-chrono = { version = "0" }
 clap = { version="3", features=["derive"] }
 hyper = { version = "0.14", features = ["server", "http1", "tcp"] }
 lazy_static = "1"

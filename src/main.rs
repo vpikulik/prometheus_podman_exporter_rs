@@ -1,5 +1,4 @@
 use anyhow::{anyhow, Result};
-use chrono::Utc;
 use clap::Parser;
 use hyper::{
     header::CONTENT_TYPE,
@@ -41,6 +40,12 @@ lazy_static! {
     static ref CONTAINER_UPTIME: GaugeVec = register_gauge_vec!(
         "podman_container_uptime",
         "Container uptime",
+        &["pod", "container"],
+    )
+    .unwrap();
+    static ref CONTAINER_SYSTEM_NANO: GaugeVec = register_gauge_vec!(
+        "podman_container_system_nano",
+        "Container system nano",
         &["pod", "container"],
     )
     .unwrap();
@@ -123,7 +128,6 @@ struct ContInfo {
     pod: Option<String>,
     name: String,
     state: isize,
-    uptime: i64,
 }
 
 struct Collector {
@@ -165,15 +169,10 @@ impl Collector {
                 Some("created") => 2,
                 Some(_) | None => -1,
             };
-            let uptime = match container.started_at {
-                Some(t) => (Utc::now()).timestamp() - t,
-                None => 0,
-            };
             let info = ContInfo {
                 pod: pod,
                 name: name,
                 state: state,
-                uptime: uptime,
             };
             result.insert(id, info);
         }
@@ -231,7 +230,10 @@ impl Collector {
                 .set(cont.state as f64);
             CONTAINER_UPTIME
                 .with_label_values(&[pod, name])
-                .set(cont.uptime as f64);
+                .set(stat.up_time.unwrap_or(0) as f64);
+            CONTAINER_SYSTEM_NANO
+                .with_label_values(&[pod, name])
+                .set(stat.system_nano.unwrap_or(0) as f64);
 
             CONTAINER_PIDS
                 .with_label_values(&[pod, name])
