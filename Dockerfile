@@ -1,4 +1,4 @@
-FROM rust:alpine3.16 AS build
+FROM rust:1.63-alpine3.16 AS build
 COPY . /usr/src/exporter/
 WORKDIR /usr/src/exporter
 RUN apk add musl-dev
