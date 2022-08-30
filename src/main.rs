@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use chrono::Utc;
 use clap::Parser;
 use hyper::{
     header::CONTENT_TYPE,
@@ -40,6 +41,12 @@ lazy_static! {
     static ref CONTAINER_UPTIME: GaugeVec = register_gauge_vec!(
         "podman_container_uptime",
         "Container uptime",
+        &["pod", "container"],
+    )
+    .unwrap();
+    static ref CONTAINER_UPTIME_CALC: GaugeVec = register_gauge_vec!(
+        "podman_container_uptime_calc",
+        "Container uptime (Calculated value)",
         &["pod", "container"],
     )
     .unwrap();
@@ -128,6 +135,7 @@ struct ContInfo {
     pod: Option<String>,
     name: String,
     state: isize,
+    uptime: i64,
 }
 
 struct Collector {
@@ -169,10 +177,15 @@ impl Collector {
                 Some("created") => 2,
                 Some(_) | None => -1,
             };
+            let uptime = match container.started_at {
+                Some(t) => (Utc::now()).timestamp() - t,
+                None => 0,
+            };
             let info = ContInfo {
                 pod: pod,
                 name: name,
                 state: state,
+                uptime: uptime,
             };
             result.insert(id, info);
         }
@@ -231,6 +244,9 @@ impl Collector {
             CONTAINER_UPTIME
                 .with_label_values(&[pod, name])
                 .set(stat.up_time.unwrap_or(0) as f64);
+            CONTAINER_UPTIME_CALC
+                .with_label_values(&[pod, name])
+                .set(cont.uptime as f64);
             CONTAINER_SYSTEM_NANO
                 .with_label_values(&[pod, name])
                 .set(stat.system_nano.unwrap_or(0) as f64);
